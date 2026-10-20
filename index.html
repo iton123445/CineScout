@@ -165,20 +165,22 @@
     <section id="filters" class="filters" hidden aria-label="Browse filters">
       <div class="genre-chips" id="genreChips" role="group" aria-label="Genre"></div>
       <div class="filter-selects">
-        <label class="select-wrap">
-          <span>Country</span>
-          <select id="countrySelect" aria-label="Country of origin">
-            <option value="">All countries</option>
-          </select>
-        </label>
-        <label class="select-wrap">
-          <span>Sort</span>
-          <select id="sortSelect" aria-label="Sort by">
-            <option value="popular">Most popular</option>
-            <option value="top">Top rated</option>
-            <option value="new">Newest</option>
-          </select>
-        </label>
+        <div id="countryPicker"></div>
+        <div class="segmented" id="sortSeg" role="radiogroup" aria-label="Sort by">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button type="button" role="radio" data-sort="popular" aria-checked="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5.3 1.6 1.2 2.6 2.3 2.8C10.6 9 11 5.6 12 3Z"/></svg>
+            <span>Popular</span>
+          </button>
+          <button type="button" role="radio" data-sort="top" aria-checked="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg>
+            <span>Top rated</span>
+          </button>
+          <button type="button" role="radio" data-sort="new" aria-checked="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+            <span>Newest</span>
+          </button>
+        </div>
       </div>
     </section>
     <section id="browse" class="search-results" hidden>
@@ -236,6 +238,7 @@
 
   <script defer src="config.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script defer src="picker.js"></script>
   <script defer src="social.js"></script>
   <script defer src="app.js"></script>
 </body>

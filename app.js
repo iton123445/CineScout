@@ -549,10 +549,7 @@
 
           <div class="where-head">
             <h3 class="section-title">Where to watch</h3>
-            <label class="select-wrap compact">
-              <span class="sr-only">Your country</span>
-              <select id="watchRegion" aria-label="Your country for streaming">${regionOptions()}</select>
-            </label>
+            <div id="watchRegion"></div>
           </div>
           <div id="whereList">${whereHtml(m)}</div>
 
@@ -571,6 +568,21 @@
           <div id="commentsSlot"></div>
         </div>
       </div>`);
+
+    window.CountryPicker($("#watchRegion"), {
+      label: "Streaming country",
+      title: "Where are you watching?",
+      codes: watchRegions.includes(state.region) ? watchRegions : [state.region, ...watchRegions],
+      value: state.region,
+      popular: POPULAR_COUNTRIES,
+      nameOf: regionName,
+      align: "right",
+      onChange(code) {
+        state.region = code;
+        try { localStorage.setItem("cinescout.region", code); } catch {}
+        $("#whereList").innerHTML = whereHtml(m);
+      },
+    });
 
     window.Social?.mount($("#socialActions"), $("#commentsSlot"), {
       key: `tmdb:${m.id}`,
@@ -630,14 +642,8 @@
     } catch {}
   }
 
-  function regionOptions() {
-    const codes = watchRegions.includes(state.region) ? watchRegions : [state.region, ...watchRegions];
-    return codes
-      .map((c) => ({ c, n: regionName(c) }))
-      .sort((a, b) => a.n.localeCompare(b.n))
-      .map(({ c, n }) => `<option value="${c}" ${c === state.region ? "selected" : ""}>${esc(n)}</option>`)
-      .join("");
-  }
+  // Shown at the top of both country pickers.
+  const POPULAR_COUNTRIES = ["US", "GB", "KR", "JP", "PH", "IN", "FR", "ES", "IT", "DE", "CN", "HK", "MX", "BR", "CA", "AU"];
 
   function whereHtml(m) {
     const where = providersHtml(m["watch/providers"], m.title);
@@ -646,15 +652,10 @@
       : `<p class="muted">Not available to stream in ${esc(regionName(state.region))} right now. Try another country.</p>`;
   }
 
-  document.addEventListener("change", (e) => {
-    if (e.target.id !== "watchRegion") return;
-    state.region = e.target.value;
-    try { localStorage.setItem("cinescout.region", state.region); } catch {}
-    if (state.currentMovie) $("#whereList").innerHTML = whereHtml(state.currentMovie);
-  });
 
   // ---------- Browse filters ----------
 
+  const SORT_LABELS = { popular: "Most popular", top: "Top rated", new: "Newest" };
   const SORTS = {
     popular: { sort_by: "popularity.desc", min: 50, minCountry: 5 },
     top: { sort_by: "vote_average.desc", min: 300, minCountry: 30 },
@@ -666,6 +667,7 @@
   const genreNames = new Map();
   let filtersReady = false;
   let browseToken = 0;
+  let countryPicker = null;
 
   function genreParams(id) {
     return { with_genres: id, sort_by: "popularity.desc", "vote_count.gte": 100, include_adult: "false" };
@@ -687,12 +689,20 @@
         ...ids.map((id) => `<button class="gchip" data-genre="${id}" aria-pressed="false">${esc(genreNames.get(id))}</button>`),
       ].join("");
 
-      const named = countries.map((c) => {
+      const names = new Map(countries.map((c) => {
         const n = regionName(c.iso_3166_1);
-        return { code: c.iso_3166_1, name: n && n !== c.iso_3166_1 ? n : c.english_name };
-      }).sort((a, b) => a.name.localeCompare(b.name));
-      $("#countrySelect").insertAdjacentHTML("beforeend",
-        named.map((c) => `<option value="${c.code}">${esc(c.name)}</option>`).join(""));
+        return [c.iso_3166_1, n && n !== c.iso_3166_1 ? n : c.english_name];
+      }));
+      countryPicker = window.CountryPicker($("#countryPicker"), {
+        label: "Country",
+        title: "Movies from",
+        allLabel: "All countries",
+        codes: [...names.keys()],
+        value: filter.country,
+        popular: POPULAR_COUNTRIES,
+        nameOf: (code) => names.get(code) || regionName(code),
+        onChange(code) { filter.country = code; applyFilters(); },
+      });
 
       filtersReady = true;
       showView();
@@ -705,14 +715,27 @@
     document.querySelectorAll(".gchip").forEach((b) => {
       b.setAttribute("aria-pressed", String(b.dataset.genre === String(filter.genre)));
     });
-    $("#countrySelect").value = filter.country;
-    $("#sortSelect").value = filter.sort;
+    countryPicker?.set(filter.country);
+    const seg = $("#sortSeg");
+    seg.querySelectorAll("[data-sort]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.sort === filter.sort)));
+    moveSortThumb();
   }
+
+  // Slides the highlight behind the selected sort option.
+  function moveSortThumb() {
+    const seg = $("#sortSeg");
+    const on = seg.querySelector('[aria-checked="true"]');
+    if (!on || !on.offsetWidth) return;
+    seg.style.setProperty("--thumb-x", `${on.offsetLeft}px`);
+    seg.style.setProperty("--thumb-w", `${on.offsetWidth}px`);
+    seg.classList.add("ready");
+  }
+  window.addEventListener("resize", moveSortThumb);
 
   function browseTitle() {
     const genre = filter.genre ? genreNames.get(Number(filter.genre)) || "Movies" : "All movies";
     const from = filter.country ? ` from ${regionName(filter.country)}` : "";
-    return `${genre}${from} · ${$("#sortSelect").selectedOptions[0].text}`;
+    return `${genre}${from} · ${SORT_LABELS[filter.sort]}`;
   }
 
   async function applyFilters({ more = false } = {}) {
@@ -775,6 +798,7 @@
     $("#searchResults").hidden = !searching;
     $("#hero").hidden = searching || !$("#hero").childElementCount;
     $("#filters").hidden = searching || !filtersReady;
+    if (!$("#filters").hidden) requestAnimationFrame(moveSortThumb);
     $("#browse").hidden = !browsing;
     $("#rows").hidden = searching || browsing;
   }
@@ -788,8 +812,21 @@
     if (fromRow) $("#filters").scrollIntoView({ behavior: "smooth", block: "start" });
     else g.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   });
-  $("#countrySelect").addEventListener("change", (e) => { filter.country = e.target.value; applyFilters(); });
-  $("#sortSelect").addEventListener("change", (e) => { filter.sort = e.target.value; applyFilters(); });
+  $("#sortSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-sort]");
+    if (!b || b.dataset.sort === filter.sort) return;
+    filter.sort = b.dataset.sort;
+    applyFilters();
+  });
+  $("#sortSeg").addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const keys = Object.keys(SORT_LABELS);
+    const i = (keys.indexOf(filter.sort) + (e.key === "ArrowRight" ? 1 : keys.length - 1)) % keys.length;
+    filter.sort = keys[i];
+    applyFilters();
+    $(`#sortSeg [data-sort="${filter.sort}"]`).focus();
+  });
   $("#resetFilters").addEventListener("click", resetFilters);
   $("#loadMore").addEventListener("click", () => applyFilters({ more: true }));
 
