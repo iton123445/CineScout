@@ -235,7 +235,7 @@
       <button class="hero-sound" type="button" hidden aria-label="Unmute trailer" aria-pressed="false">🔇</button>
       <div class="hero-inner">
         <div class="eyebrow">${m.freeIa ? "Free to watch" : "Trending this week"}</div>
-        <h1>${esc(m.title)}</h1>
+        <h2 class="hero-title">${esc(m.title)}</h2>
         <p>${esc(m.overview || "")}</p>
         <div class="actions">
           ${m.freeIa ? `<a class="btn btn-free" href="${href}?play">▶ Watch free</a>` : ""}
@@ -848,5 +848,13 @@
 
   loadRegions();
   initFilters();
-  loadHome().then(route);
+  loadHome().then(() => {
+    route();
+    // Supports links like /?q=batman (also used by Google's site search box).
+    const q = new URLSearchParams(location.search).get("q");
+    if (q) {
+      $("#searchInput").value = q;
+      runSearch(q.trim());
+    }
+  });
 })();

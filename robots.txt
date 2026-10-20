@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cinescout-jcs8.onrender.com/sitemap.xml

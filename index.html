@@ -4,8 +4,66 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <title>CineScout — find it, watch it</title>
-  <meta name="description" content="Browse movies, see where they're streaming, and watch public-domain classics for free.">
+  <title>CineScout – Find Where to Stream Any Movie &amp; Watch Free Classics</title>
+  <meta name="description" content="Search any movie and see where it's streaming in your country: Netflix, Prime Video, Disney+ and more. Watch trailers, browse by genre and country, and stream public-domain classics free.">
+  <link rel="canonical" href="https://cinescout-jcs8.onrender.com/">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="application-name" content="CineScout">
+
+  <!-- Link previews (Facebook, Messenger, LinkedIn, Discord, X) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="CineScout">
+  <meta property="og:title" content="CineScout – Find Where to Stream Any Movie">
+  <meta property="og:description" content="See where any movie is streaming in your country, watch trailers, browse by genre and country, and stream public-domain classics free.">
+  <meta property="og:url" content="https://cinescout-jcs8.onrender.com/">
+  <meta property="og:image" content="https://cinescout-jcs8.onrender.com/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="CineScout logo with the tagline Find where to stream any movie">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CineScout – Find Where to Stream Any Movie">
+  <meta name="twitter:description" content="See where any movie is streaming, watch trailers, and stream public-domain classics free.">
+  <meta name="twitter:image" content="https://cinescout-jcs8.onrender.com/og-image.jpg">
+
+  <!-- Structured data: tells Google this is a website with a search box -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://cinescout-jcs8.onrender.com/#website",
+        "name": "CineScout",
+        "url": "https://cinescout-jcs8.onrender.com/",
+        "description": "Find where to stream any movie, watch trailers, and stream public-domain classics free.",
+        "inLanguage": "en",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": { "@type": "EntryPoint", "urlTemplate": "https://cinescout-jcs8.onrender.com/?q={search_term_string}" },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "WebApplication",
+        "name": "CineScout",
+        "url": "https://cinescout-jcs8.onrender.com/",
+        "applicationCategory": "EntertainmentApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "image": "https://cinescout-jcs8.onrender.com/og-image.jpg",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "Where to watch any movie by country",
+          "Movie trailers and cast",
+          "Browse by genre and country of origin",
+          "Free public-domain movie streaming",
+          "Ratings, comments and a personal watch list"
+        ]
+      }
+    ]
+  }
+  </script>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -20,6 +78,8 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://api.themoviedb.org">
+  <link rel="preconnect" href="https://image.tmdb.org">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -91,6 +151,10 @@
   </header>
 
   <main>
+    <h1 class="sr-only">CineScout – find where to stream any movie, watch trailers and free classics</h1>
+    <noscript>
+      <div class="notice">CineScout needs JavaScript to load movies. Please enable it to search films, see where they're streaming and watch free classics.</div>
+    </noscript>
     <section id="hero" class="hero" hidden></section>
     <div id="keyNotice" class="notice" hidden>
       <strong>Add your TMDB key to unlock the full catalog.</strong>
@@ -129,6 +193,28 @@
     <div id="rows"></div>
   </main>
 
+  <section class="about" aria-labelledby="aboutTitle">
+    <h2 id="aboutTitle">Find where to stream any movie</h2>
+    <div class="about-grid">
+      <div>
+        <h3>Where to watch, by country</h3>
+        <p>Search any film and CineScout shows which services carry it where you live, whether to stream on Netflix, Prime Video, Disney+, Max or Apple TV, or to rent and buy. Switch countries in one tap.</p>
+      </div>
+      <div>
+        <h3>Browse by genre and country</h3>
+        <p>Explore comedy, romance, action, horror, animation, sci‑fi and more, or discover movies from South Korea, Japan, the Philippines, India, France and 250 other countries, sorted by popularity, rating or release date.</p>
+      </div>
+      <div>
+        <h3>Free classic movies</h3>
+        <p>Watch public-domain classics free, right on the page: <em>Night of the Living Dead</em>, <em>Nosferatu</em>, <em>His Girl Friday</em>, Buster Keaton's <em>The General</em> and other films streamed from the Internet Archive.</p>
+      </div>
+      <div>
+        <h3>Trailers, ratings and your list</h3>
+        <p>Watch official trailers, see the cast, rate movies, join the comments, and save films to My List with a free account.</p>
+      </div>
+    </div>
+  </section>
+
   <footer class="footer">
     <p>Movie data and streaming availability from
       <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDB</a> and
@@ -148,9 +234,9 @@
     <div id="authBody"></div>
   </dialog>
 
-  <script src="config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
-  <script src="social.js"></script>
-  <script src="app.js"></script>
+  <script defer src="config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script defer src="social.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>

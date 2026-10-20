@@ -192,7 +192,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 .hero-inner { position: relative; max-width: 620px; }
 .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; }
-.hero h1 {
+.hero h1, .hero-title {
   font: 800 clamp(36px, 6vw, 72px)/0.95 var(--font-display);
   letter-spacing: -0.03em; margin: 10px 0 14px;
 }
@@ -375,6 +375,13 @@ main { padding-bottom: 40px; }
 .comment-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .comment-head .link-btn { margin-left: auto; }
 .tag { padding: 1px 8px; border-radius: 999px; background: #ffffff14; font-size: 11px; font-weight: 700; color: var(--muted); }
+
+/* About: plain-language description for visitors and search engines */
+.about { padding: 56px var(--gutter) 40px; border-top: 1px solid var(--line); margin-top: 48px; }
+.about h2 { font: 800 clamp(24px, 3.4vw, 34px)/1.1 var(--font-display); letter-spacing: -0.02em; margin: 0 0 22px; }
+.about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px 32px; }
+.about h3 { font: 700 17px/1.3 var(--font-display); margin: 0 0 6px; color: var(--accent); }
+.about p { margin: 0; color: var(--muted); font-size: 14.5px; }
 
 .footer {
   padding: 30px var(--gutter) 40px; border-top: 1px solid var(--line);
