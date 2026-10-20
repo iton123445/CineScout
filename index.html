@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>CineScout — find it, watch it</title>
+  <meta name="description" content="Browse movies, see where they're streaming, and watch public-domain classics for free.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" id="homeLink" aria-label="CineScout home">
+      <span class="brand-mark" aria-hidden="true">▶</span>CineScout
+    </a>
+    <form class="search" id="searchForm" role="search">
+      <input id="searchInput" type="search" placeholder="Search movies…" autocomplete="off" aria-label="Search movies">
+    </form>
+    <label class="region">
+      <span class="sr-only">Region</span>
+      <select id="regionSelect" aria-label="Streaming region"></select>
+    </label>
+  </header>
+
+  <main>
+    <section id="hero" class="hero" hidden></section>
+    <div id="keyNotice" class="notice" hidden>
+      <strong>Add your TMDB key to unlock the full catalog.</strong>
+      Open <code>config.js</code> and paste a free key from
+      <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a>.
+      Free classics below already work.
+    </div>
+    <section id="searchResults" class="search-results" hidden>
+      <div class="row-head"><h2 id="searchTitle">Results</h2><button class="link-btn" id="clearSearch">Clear</button></div>
+      <div class="grid" id="searchGrid"></div>
+    </section>
+    <div id="rows"></div>
+  </main>
+
+  <footer class="footer">
+    <p>Movie data and streaming availability from
+      <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDB</a> and
+      <a href="https://www.justwatch.com/" target="_blank" rel="noopener">JustWatch</a>.
+      This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <p>Free films are public-domain or openly licensed titles streamed from the
+      <a href="https://archive.org/details/feature_films" target="_blank" rel="noopener">Internet Archive</a>.</p>
+  </footer>
+
+  <dialog id="detail" class="detail" aria-labelledby="detailTitle">
+    <button class="close" id="closeDetail" aria-label="Close">✕</button>
+    <div id="detailBody"></div>
+  </dialog>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
