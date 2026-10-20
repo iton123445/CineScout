@@ -21,6 +21,25 @@ Plain HTML, CSS and JavaScript. No build step and nothing to install.
 
 The free classics work without a key.
 
+## Accounts, My List, ratings and comments (optional)
+
+These use [Supabase](https://supabase.com) (free tier). Without it, the site works as before and these features stay hidden.
+
+1. Create a Supabase project.
+2. Open **SQL Editor → New query**, paste [`supabase/schema.sql`](supabase/schema.sql), and click **Run**.
+3. In **Authentication → URL Configuration**, set **Site URL** to your live site (e.g. `https://cinescout-jcs8.onrender.com`) and add `http://localhost:5500` under **Redirect URLs**.
+4. Copy the **Project URL** and the **anon / publishable key** from **Project Settings → API** into `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Both are safe to expose; the database rules in `schema.sql` protect the data.
+
+Members can save movies to My List, rate 1–5 stars and comment. Guests can comment with just a name. Guest comments are labeled and limited to 30 per 10 minutes site-wide to slow down spam.
+
+## Render
+
+- **Build Command:** `bash build.sh`
+- **Publish Directory:** `./`
+- **Environment:** `TMDB_KEY`, plus `SUPABASE_URL` and `SUPABASE_ANON_KEY` for accounts. `REGION` is optional.
+
+`build.sh` writes `config.js` from these variables and versions the asset URLs so every deploy shows up immediately.
+
 ## Deploying
 
 Upload the folder to GitHub Pages, Netlify or Vercel. Note that the TMDB key in `config.js` will be visible to visitors. TMDB allows that for read-only keys, but don't reuse the key anywhere sensitive.

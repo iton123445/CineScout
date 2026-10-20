@@ -23,6 +23,7 @@
       <span class="sr-only">Region</span>
       <select id="regionSelect" aria-label="Streaming region"></select>
     </label>
+    <div id="authArea" class="auth-area"></div>
   </header>
 
   <main>
@@ -54,7 +55,14 @@
     <div id="detailBody"></div>
   </dialog>
 
+  <dialog id="authDialog" class="auth" aria-label="Account">
+    <button class="close" data-close-auth aria-label="Close">✕</button>
+    <div id="authBody"></div>
+  </dialog>
+
   <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script src="social.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

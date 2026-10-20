@@ -175,10 +175,13 @@
 
   function renderHero(m) {
     const hero = $("#hero");
-    const bg = m.backdrop_path ? `${IMG}original${m.backdrop_path}` : m.thumb;
+    const size = window.innerWidth > 1400 ? "original" : "w1280";
+    const bg = m.backdrop_path ? `${IMG}${size}${m.backdrop_path}` : m.thumb;
     hero.style.backgroundImage = bg ? `url("${bg}")` : "";
     const href = m.id ? `#movie/${m.id}` : `#free/${encodeURIComponent(m.freeIa)}`;
     hero.innerHTML = `
+      <div class="hero-video" aria-hidden="true"></div>
+      <button class="hero-sound" type="button" hidden aria-label="Unmute trailer" aria-pressed="false">🔇</button>
       <div class="hero-inner">
         <div class="eyebrow">${m.freeIa ? "Free to watch" : "Trending this week"}</div>
         <h1>${esc(m.title)}</h1>
@@ -189,7 +192,88 @@
         </div>
       </div>`;
     hero.hidden = false;
+    if (m.id && HAS_KEY) queueHeroTrailer(m.id);
   }
+
+  // ---------- Hero trailer ----------
+  // The backdrop image shows first. A muted trailer fades in once the page is idle,
+  // and only where it won't hurt: wide screens, no data saver, no reduced motion.
+
+  const heroTrailer = { frame: null, playing: false, visible: true };
+
+  function queueHeroTrailer(id) {
+    const conn = navigator.connection || {};
+    const slow = conn.saveData || /(^|-)2g$/.test(conn.effectiveType || "");
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (slow || reduce || window.innerWidth < 720) return;
+
+    const start = () => tmdb(`/movie/${id}/videos`)
+      .then((v) => { const key = trailerKey(v); if (key) mountHeroTrailer(key); })
+      .catch(() => {});
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
+    const go = () => setTimeout(() => idle(start), 2500);
+    if (document.readyState === "complete") go();
+    else window.addEventListener("load", go, { once: true });
+  }
+
+  function ytCommand(func, args = []) {
+    heroTrailer.frame?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
+  }
+
+  function mountHeroTrailer(key) {
+    const box = $("#hero .hero-video");
+    if (!box || box.firstChild) return;
+    const params = new URLSearchParams({
+      autoplay: 1, mute: 1, controls: 0, loop: 1, playlist: key, playsinline: 1,
+      rel: 0, iv_load_policy: 3, disablekb: 1, enablejsapi: 1, origin: location.origin,
+    });
+    const frame = document.createElement("iframe");
+    frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(key)}?${params}`;
+    frame.allow = "autoplay; encrypted-media";
+    frame.title = "Trailer";
+    frame.tabIndex = -1;
+    frame.addEventListener("load", () => {
+      frame.contentWindow.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "*");
+    });
+    box.appendChild(frame);
+    heroTrailer.frame = frame;
+  }
+
+  // Fade the video in only once YouTube reports it is actually playing.
+  window.addEventListener("message", (e) => {
+    if (!heroTrailer.frame || e.source !== heroTrailer.frame.contentWindow) return;
+    let data;
+    try { data = typeof e.data === "string" ? JSON.parse(e.data) : e.data; } catch { return; }
+    if (data?.info?.playerState === 1 && !heroTrailer.playing) {
+      heroTrailer.playing = true;
+      $("#hero .hero-video")?.classList.add("playing");
+      const btn = $("#hero .hero-sound");
+      if (btn) btn.hidden = false;
+      syncHeroPlayback();
+    }
+  });
+
+  function syncHeroPlayback() {
+    if (!heroTrailer.frame) return;
+    const active = heroTrailer.visible && !document.hidden && !$("#detail").open && !$("#hero").hidden;
+    ytCommand(active ? "playVideo" : "pauseVideo");
+  }
+
+  new IntersectionObserver(([entry]) => {
+    heroTrailer.visible = entry.isIntersecting;
+    syncHeroPlayback();
+  }, { threshold: 0.25 }).observe($("#hero"));
+  document.addEventListener("visibilitychange", syncHeroPlayback);
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".hero-sound");
+    if (!btn) return;
+    const unmute = btn.getAttribute("aria-pressed") !== "true";
+    ytCommand(unmute ? "unMute" : "mute");
+    btn.setAttribute("aria-pressed", String(unmute));
+    btn.setAttribute("aria-label", unmute ? "Mute trailer" : "Unmute trailer");
+    btn.textContent = unmute ? "🔊" : "🔇";
+  });
 
   // ---------- Free classics ----------
 
@@ -215,6 +299,7 @@
 
   async function loadHome() {
     $("#keyNotice").hidden = HAS_KEY;
+    window.Social?.mountHomeRow($("#rows"));
     const freeRow = HAS_KEY ? null : addRow("Free classics", "Public domain · stream right here");
 
     if (!HAS_KEY) {
@@ -358,7 +443,7 @@
   function openDialog(html) {
     $("#detailBody").innerHTML = html;
     const dlg = $("#detail");
-    if (!dlg.open) dlg.showModal();
+    if (!dlg.open) { dlg.showModal(); syncHeroPlayback(); }
     dlg.scrollTop = 0;
   }
 
@@ -391,6 +476,7 @@
           </div>
           <div class="chips">${(m.genres || []).map((g) => `<span class="chip">${esc(g.name)}</span>`).join("")}</div>
           <p class="d-overview">${esc(m.overview || "No overview available.")}</p>
+          <div id="socialActions"></div>
 
           <div id="freeSlot"></div>
 
@@ -411,8 +497,16 @@
                 ${c.profile_path ? `<img loading="lazy" src="${IMG}w185${c.profile_path}" alt="">` : '<div class="ph"></div>'}
                 <b>${esc(c.name)}</b><span>${esc(c.character)}</span>
               </div>`).join("")}</div>` : ""}
+          <div id="commentsSlot"></div>
         </div>
       </div>`);
+
+    window.Social?.mount($("#socialActions"), $("#commentsSlot"), {
+      key: `tmdb:${m.id}`,
+      title: m.title,
+      poster: m.poster_path ? `${IMG}w342${m.poster_path}` : null,
+      href: `#movie/${m.id}`,
+    });
 
     const ia = await findFreeCopy(m);
     if (ia && location.hash.startsWith(`#movie/${id}`)) $("#freeSlot").innerHTML = freeBox(ia, autoplay);
@@ -432,10 +526,19 @@
           <h2 id="detailTitle" style="margin-top:8px">${esc(title)}</h2>
           <div class="d-facts">${year ? `<span>${esc(year)}</span>` : ""}<span>Internet Archive</span></div>
           <p class="d-overview">${esc(c?.blurb || stripHtml(md.description).slice(0, 500) || "A public-domain film.")}</p>
+          <div id="socialActions"></div>
           ${freeBox(ia, autoplay)}
           <p class="muted" style="font-size:13px"><a href="${IA}/details/${encodeURIComponent(ia)}" target="_blank" rel="noopener">View on archive.org</a></p>
+          <div id="commentsSlot"></div>
         </div>
       </div>`);
+
+    window.Social?.mount($("#socialActions"), $("#commentsSlot"), {
+      key: `ia:${ia}`,
+      title,
+      poster: iaThumb(ia),
+      href: `#free/${encodeURIComponent(ia)}`,
+    });
   }
 
   // ---------- Regions ----------
@@ -476,7 +579,7 @@
     if (kind === "movie" && id && HAS_KEY) return showMovie(Number(id), autoplay);
     if (kind === "free" && id) return showFree(decodeURIComponent(id), autoplay);
     const dlg = $("#detail");
-    if (dlg.open) dlg.close();
+    if (dlg.open) { dlg.close(); syncHeroPlayback(); }
   }
 
   function closeDetail() {

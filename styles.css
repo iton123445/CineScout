@@ -72,7 +72,26 @@ button, input, select { font: inherit; color: inherit; }
   padding: 0 var(--gutter) 56px; margin-top: -64px;
   background-size: cover; background-position: center 20%;
 }
+.hero { isolation: isolate; overflow: hidden; }
+.hero-video {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  container-type: size; opacity: 0; transition: opacity 1.4s ease;
+}
+.hero-video.playing { opacity: 1; }
+.hero-video iframe {
+  position: absolute; top: 50%; left: 50%; border: 0;
+  width: max(100cqw, 177.78cqh); height: max(56.25cqw, 100cqh);
+  transform: translate(-50%, -50%) scale(1.2);
+}
+.hero-sound {
+  position: absolute; right: var(--gutter); bottom: 56px; z-index: 2;
+  width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+  border: 1px solid #ffffff55; background: #0008; font-size: 17px;
+}
+.hero-sound:hover { border-color: var(--accent); }
+.hero-inner { z-index: 2; }
 .hero::before {
+  z-index: 1;
   content: ""; position: absolute; inset: 0;
   background:
     linear-gradient(90deg, var(--bg) 0%, #0b0c10cc 35%, transparent 75%),
@@ -162,7 +181,7 @@ main { padding-bottom: 40px; }
 }
 .d-backdrop { position: relative; aspect-ratio: 16 / 7; background: var(--surface-2) center / cover; }
 .d-backdrop::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, var(--surface), transparent 70%); }
-.d-main { display: grid; grid-template-columns: 200px 1fr; gap: 28px; padding: 0 32px 32px; margin-top: -90px; position: relative; }
+.d-main { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 28px; padding: 0 32px 32px; margin-top: -90px; position: relative; }
 .d-poster { border-radius: 12px; overflow: hidden; aspect-ratio: 2/3; background: var(--surface-2); box-shadow: 0 16px 40px #000a; }
 .d-poster img { width: 100%; height: 100%; object-fit: cover; }
 .d-info h2 { font: 800 clamp(26px, 4vw, 40px)/1.05 var(--font-display); margin: 60px 0 8px; letter-spacing: -0.02em; }
@@ -195,6 +214,75 @@ main { padding-bottom: 40px; }
 .cast-item b { display: block; font-size: 12.5px; margin-top: 6px; line-height: 1.25; }
 .cast-item span { font-size: 12px; color: var(--muted); }
 
+/* Accounts */
+.btn-sm { padding: 8px 16px; font-size: 14px; }
+.btn-block { width: 100%; justify-content: center; }
+.btn-saved { background: #3a1420; color: #ff8fa8; border: 1px solid #6b2236; }
+.btn:disabled { opacity: .6; cursor: wait; }
+.auth-area { position: relative; }
+.avatar {
+  width: 38px; height: 38px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); font: 800 16px/1 var(--font-display);
+}
+.menu {
+  position: absolute; right: 0; top: calc(100% + 8px); min-width: 200px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 40px #000a;
+}
+.menu-head { padding: 8px 10px 10px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.menu-head b { color: var(--text); }
+.menu button {
+  display: block; width: 100%; text-align: left; padding: 9px 10px; border: 0; border-radius: 8px;
+  background: none; cursor: pointer;
+}
+.menu button:hover { background: var(--surface-2); }
+
+.auth {
+  width: min(420px, calc(100vw - 24px)); padding: 28px; border: 1px solid var(--line);
+  border-radius: 18px; background: var(--surface); color: var(--text);
+}
+.auth::backdrop { background: #000c; backdrop-filter: blur(4px); }
+.auth .close { margin: -14px -14px 0 0; }
+.auth h2 { font: 800 26px/1.1 var(--font-display); margin: 0 0 8px; }
+.auth form { display: grid; gap: 12px; margin-top: 16px; }
+.auth label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.auth input, .comment-form input, .comment-form textarea {
+  width: 100%; padding: 11px 14px; border-radius: 10px; outline: none;
+  background: var(--bg); border: 1px solid var(--line); color: var(--text);
+}
+.auth input:focus, .comment-form input:focus, .comment-form textarea:focus { border-color: var(--accent); }
+.auth-links { margin: 12px 0 0; font-size: 14px; color: var(--muted); text-align: center; }
+.form-msg { margin: 0; min-height: 0; font-size: 13.5px; color: #ff8f8f; }
+.form-msg:empty { display: none; }
+.form-msg.ok { color: var(--free); }
+.small { font-size: 12.5px; }
+
+.social-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin: 0 0 8px; }
+.stars { display: flex; }
+.star {
+  background: none; border: 0; padding: 2px; cursor: pointer;
+  font-size: 24px; line-height: 1; color: #4a4e5a; transition: color .1s, transform .1s;
+}
+.star.on { color: var(--accent); }
+.stars:hover .star { color: var(--accent); }
+.stars .star:hover ~ .star { color: #4a4e5a; }
+.star:hover { transform: scale(1.15); }
+.community { font-size: 13.5px; }
+
+.comment-form { display: grid; gap: 10px; margin-bottom: 18px; }
+.comment-form textarea { resize: vertical; min-height: 80px; font: inherit; }
+.guest-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.guest-row input { max-width: 240px; }
+.comment-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.comment-foot .form-msg { margin-right: auto; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.comments { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.comment { padding: 14px 16px; border-radius: 12px; background: var(--surface-2); }
+.comment p { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.comment-head .link-btn { margin-left: auto; }
+.tag { padding: 1px 8px; border-radius: 999px; background: #ffffff14; font-size: 11px; font-weight: 700; color: var(--muted); }
+
 .footer {
   padding: 30px var(--gutter) 40px; border-top: 1px solid var(--line);
   color: var(--muted); font-size: 13px;
@@ -208,7 +296,7 @@ main { padding-bottom: 40px; }
   .hero { min-height: 60vh; margin-top: -110px; padding-bottom: 36px; }
   .track { grid-auto-columns: 128px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-  .d-main { grid-template-columns: 1fr; padding: 0 18px 24px; margin-top: -60px; }
+  .d-main { grid-template-columns: minmax(0, 1fr); padding: 0 18px 24px; margin-top: -60px; }
   .d-poster { width: 130px; }
   .d-info h2 { margin-top: 4px; }
 }
