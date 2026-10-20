@@ -157,11 +157,14 @@
     return Array.from({ length: n }, () => '<div class="card skeleton"><div class="poster"></div></div>').join("");
   }
 
-  function addRow(title, subtitle) {
+  function addRow(title, subtitle, genreId) {
     const sec = document.createElement("section");
     sec.className = "row";
+    const side = genreId
+      ? `<button class="link-btn" data-genre="${genreId}">See all →</button>`
+      : subtitle ? `<small>${esc(subtitle)}</small>` : "";
     sec.innerHTML = `
-      <div class="row-head"><h2>${esc(title)}</h2>${subtitle ? `<small>${esc(subtitle)}</small>` : ""}</div>
+      <div class="row-head"><h2>${esc(title)}</h2>${side}</div>
       <div class="track">${skeletonCards()}</div>`;
     $("#rows").appendChild(sec);
     reveal(sec);
@@ -210,7 +213,7 @@
           <a class="btn ${m.freeIa ? "btn-ghost" : "btn-primary"}" href="${href}">${m.id ? "Details &amp; where to watch" : "Details"}</a>
         </div>
       </div>`;
-    hero.hidden = false;
+    showView();
     if (bg) {
       // Fade the backdrop in once it has downloaded, then let it slowly drift.
       const layer = hero.querySelector(".hero-bg");
@@ -343,10 +346,16 @@
       ["Free classics", "Public domain · stream right here", "free", {}],
       ["Popular", null, "/movie/popular", { region: state.region }],
       ["Now in theaters", null, "/movie/now_playing", { region: state.region }],
+      ["Comedy", null, "/discover/movie", genreParams(35)],
+      ["Romance", null, "/discover/movie", genreParams(10749)],
+      ["Action", null, "/discover/movie", genreParams(28)],
+      ["Horror", null, "/discover/movie", genreParams(27)],
+      ["Animation", null, "/discover/movie", genreParams(16)],
+      ["Sci-Fi", null, "/discover/movie", genreParams(878)],
       ["Top rated of all time", null, "/movie/top_rated", {}],
       ["Coming soon", null, "/movie/upcoming", { region: state.region }],
     ];
-    const slots = rows.map(([title, sub]) => addRow(title, sub));
+    const slots = rows.map(([title, sub, , params]) => addRow(title, sub, params.with_genres));
 
     // Free classics first so FREE badges show on other rows too.
     const free = await loadFreeClassics();
@@ -385,15 +394,8 @@
   let searchTimer;
   async function runSearch(q) {
     const box = $("#searchResults");
-    if (!q) {
-      box.hidden = true;
-      $("#hero").hidden = false;
-      $("#rows").hidden = false;
-      return;
-    }
-    box.hidden = false;
-    $("#hero").hidden = true;
-    $("#rows").hidden = true;
+    showView();
+    if (!q) return;
     $("#searchTitle").textContent = `Results for “${q}”`;
     const grid = $("#searchGrid");
     grid.innerHTML = skeletonCards(12);
@@ -484,13 +486,13 @@
     let m;
     try {
       m = await tmdb(`/movie/${id}`, { append_to_response: "videos,credits,watch/providers" });
+      state.currentMovie = m;
     } catch (e) {
       openDialog(`<div style="padding:40px">Couldn't load this movie.</div>`);
       return;
     }
     const year = yearOf(m.release_date);
     const runtime = m.runtime ? `${Math.floor(m.runtime / 60)}h ${m.runtime % 60}m` : null;
-    const where = providersHtml(m["watch/providers"], m.title);
     const yt = trailerKey(m.videos);
     const cast = (m.credits?.cast || []).slice(0, 12);
 
@@ -512,10 +514,14 @@
 
           <div id="freeSlot"></div>
 
-          <h3 class="section-title">Where to watch in ${esc(regionName(state.region))}</h3>
-          ${where
-            ? `${where.html}<p class="muted" style="font-size:13px">Buttons open a search for this title on each service. <a href="${esc(where.link)}" target="_blank" rel="noopener">All options on TMDB</a> · data by JustWatch.</p>`
-            : `<p class="muted">Not available to stream in ${esc(regionName(state.region))} right now. Try another region above.</p>`}
+          <div class="where-head">
+            <h3 class="section-title">Where to watch</h3>
+            <label class="select-wrap compact">
+              <span class="sr-only">Your country</span>
+              <select id="watchRegion" aria-label="Your country for streaming">${regionOptions()}</select>
+            </label>
+          </div>
+          <div id="whereList">${whereHtml(m)}</div>
 
           ${yt ? `
             <h3 class="section-title">Trailer</h3>
@@ -580,27 +586,179 @@
     catch { return code; }
   }
 
-  async function initRegions() {
-    let codes = FALLBACK_REGIONS;
-    if (HAS_KEY) {
-      try {
-        const r = await tmdb("/watch/providers/regions");
-        codes = r.results.map((x) => x.iso_3166_1);
-      } catch {}
-    }
-    if (!codes.includes(state.region)) codes = [state.region, ...codes];
-    const sel = $("#regionSelect");
-    sel.innerHTML = codes
+  // Countries TMDB has streaming data for. Used by the "Where to watch" picker on each movie.
+  let watchRegions = FALLBACK_REGIONS;
+
+  async function loadRegions() {
+    if (!HAS_KEY) return;
+    try {
+      const r = await tmdb("/watch/providers/regions");
+      watchRegions = r.results.map((x) => x.iso_3166_1);
+    } catch {}
+  }
+
+  function regionOptions() {
+    const codes = watchRegions.includes(state.region) ? watchRegions : [state.region, ...watchRegions];
+    return codes
       .map((c) => ({ c, n: regionName(c) }))
       .sort((a, b) => a.n.localeCompare(b.n))
       .map(({ c, n }) => `<option value="${c}" ${c === state.region ? "selected" : ""}>${esc(n)}</option>`)
       .join("");
-    sel.addEventListener("change", () => {
-      state.region = sel.value;
-      try { localStorage.setItem("cinescout.region", state.region); } catch {}
-      route();
-    });
   }
+
+  function whereHtml(m) {
+    const where = providersHtml(m["watch/providers"], m.title);
+    return where
+      ? `${where.html}<p class="muted" style="font-size:13px">Buttons open a search for this title on each service. <a href="${esc(where.link)}" target="_blank" rel="noopener">All options on TMDB</a> · data by JustWatch.</p>`
+      : `<p class="muted">Not available to stream in ${esc(regionName(state.region))} right now. Try another country.</p>`;
+  }
+
+  document.addEventListener("change", (e) => {
+    if (e.target.id !== "watchRegion") return;
+    state.region = e.target.value;
+    try { localStorage.setItem("cinescout.region", state.region); } catch {}
+    if (state.currentMovie) $("#whereList").innerHTML = whereHtml(state.currentMovie);
+  });
+
+  // ---------- Browse filters ----------
+
+  const SORTS = {
+    popular: { sort_by: "popularity.desc", min: 50, minCountry: 5 },
+    top: { sort_by: "vote_average.desc", min: 300, minCountry: 30 },
+    new: { sort_by: "primary_release_date.desc", min: 20, minCountry: 1 },
+  };
+  // Most-wanted genres first; any others TMDB adds go at the end.
+  const GENRE_ORDER = [28, 35, 10749, 18, 27, 53, 16, 878, 12, 14, 80, 9648, 10751, 99, 36, 10752, 10402, 37, 10770];
+  const filter = { genre: "", country: "", sort: "popular", page: 1 };
+  const genreNames = new Map();
+  let filtersReady = false;
+  let browseToken = 0;
+
+  function genreParams(id) {
+    return { with_genres: id, sort_by: "popularity.desc", "vote_count.gte": 100, include_adult: "false" };
+  }
+
+  const isFiltering = () => Boolean(filter.genre || filter.country || filter.sort !== "popular");
+
+  async function initFilters() {
+    if (!HAS_KEY) return;
+    try {
+      const [g, countries] = await Promise.all([tmdb("/genre/movie/list"), tmdb("/configuration/countries")]);
+      for (const x of g.genres) genreNames.set(x.id, x.name);
+      const ids = [
+        ...GENRE_ORDER.filter((id) => genreNames.has(id)),
+        ...g.genres.map((x) => x.id).filter((id) => !GENRE_ORDER.includes(id)),
+      ];
+      $("#genreChips").innerHTML = [
+        `<button class="gchip" data-genre="" aria-pressed="true">All</button>`,
+        ...ids.map((id) => `<button class="gchip" data-genre="${id}" aria-pressed="false">${esc(genreNames.get(id))}</button>`),
+      ].join("");
+
+      const named = countries.map((c) => {
+        const n = regionName(c.iso_3166_1);
+        return { code: c.iso_3166_1, name: n && n !== c.iso_3166_1 ? n : c.english_name };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      $("#countrySelect").insertAdjacentHTML("beforeend",
+        named.map((c) => `<option value="${c.code}">${esc(c.name)}</option>`).join(""));
+
+      filtersReady = true;
+      showView();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function syncFilterUI() {
+    document.querySelectorAll(".gchip").forEach((b) => {
+      b.setAttribute("aria-pressed", String(b.dataset.genre === String(filter.genre)));
+    });
+    $("#countrySelect").value = filter.country;
+    $("#sortSelect").value = filter.sort;
+  }
+
+  function browseTitle() {
+    const genre = filter.genre ? genreNames.get(Number(filter.genre)) || "Movies" : "All movies";
+    const from = filter.country ? ` from ${regionName(filter.country)}` : "";
+    return `${genre}${from} · ${$("#sortSelect").selectedOptions[0].text}`;
+  }
+
+  async function applyFilters({ more = false } = {}) {
+    syncFilterUI();
+    showView();
+    if (!isFiltering()) return;
+
+    const grid = $("#browseGrid");
+    const btn = $("#loadMore");
+    const token = ++browseToken;
+    filter.page = more ? filter.page + 1 : 1;
+    if (!more) {
+      $("#browseTitle").textContent = browseTitle();
+      grid.innerHTML = skeletonCards(12);
+      btn.hidden = true;
+    }
+    btn.disabled = true;
+
+    const sort = SORTS[filter.sort];
+    const params = {
+      sort_by: sort.sort_by,
+      "vote_count.gte": filter.country ? sort.minCountry : sort.min,
+      include_adult: "false",
+      page: filter.page,
+    };
+    if (filter.genre) params.with_genres = filter.genre;
+    if (filter.country) params.with_origin_country = filter.country;
+    if (filter.sort === "new") params["primary_release_date.lte"] = new Date().toISOString().slice(0, 10);
+
+    try {
+      const r = await tmdb("/discover/movie", params);
+      if (token !== browseToken) return;
+      const html = r.results.map(posterCard).join("");
+      if (more) grid.insertAdjacentHTML("beforeend", html);
+      else {
+        grid.innerHTML = html || `<p class="muted">No movies match these filters. Try another genre or country.</p>`;
+        const box = $("#browse");
+        box.classList.remove("in");
+        void box.offsetWidth;
+        box.classList.add("in");
+      }
+      btn.hidden = filter.page >= Math.min(r.total_pages, 500);
+    } catch (e) {
+      console.error(e);
+      if (!more && token === browseToken) grid.innerHTML = `<p class="muted">Couldn't load movies. Try again.</p>`;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function resetFilters() {
+    Object.assign(filter, { genre: "", country: "", sort: "popular", page: 1 });
+    applyFilters();
+  }
+
+  // Decides which sections are visible: search results, filtered browse, or the home rows.
+  function showView() {
+    const searching = Boolean($("#searchInput").value.trim());
+    const browsing = !searching && isFiltering();
+    $("#searchResults").hidden = !searching;
+    $("#hero").hidden = searching || !$("#hero").childElementCount;
+    $("#filters").hidden = searching || !filtersReady;
+    $("#browse").hidden = !browsing;
+    $("#rows").hidden = searching || browsing;
+  }
+
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest("[data-genre]");
+    if (!g) return;
+    const fromRow = !g.classList.contains("gchip");
+    filter.genre = g.dataset.genre;
+    applyFilters();
+    if (fromRow) $("#filters").scrollIntoView({ behavior: "smooth", block: "start" });
+    else g.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  });
+  $("#countrySelect").addEventListener("change", (e) => { filter.country = e.target.value; applyFilters(); });
+  $("#sortSelect").addEventListener("change", (e) => { filter.sort = e.target.value; applyFilters(); });
+  $("#resetFilters").addEventListener("click", resetFilters);
+  $("#loadMore").addEventListener("click", () => applyFilters({ more: true }));
 
   // ---------- Routing ----------
 
@@ -648,11 +806,14 @@
   $("#homeLink").addEventListener("click", (e) => {
     e.preventDefault();
     $("#searchInput").value = "";
+    Object.assign(filter, { genre: "", country: "", sort: "popular", page: 1 });
+    syncFilterUI();
     runSearch("");
     closeDetail();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
-  initRegions();
+  loadRegions();
+  initFilters();
   loadHome().then(route);
 })();

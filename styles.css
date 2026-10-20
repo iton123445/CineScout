@@ -54,10 +54,39 @@ button, input, select { font: inherit; color: inherit; }
   background: var(--surface); border: 1px solid var(--line); outline: none;
 }
 .search input:focus { border-color: var(--accent); }
-.region select {
-  padding: 10px 12px; border-radius: 999px; background: var(--surface);
-  border: 1px solid var(--line); cursor: pointer;
+.auth-area { margin-left: 4px; }
+
+/* Filter bar: genre chips + country and sort */
+.filters {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px;
+  padding: 22px var(--gutter) 0;
 }
+.genre-chips {
+  display: flex; gap: 8px; flex: 1 1 420px; min-width: 0;
+  overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px;
+  mask-image: linear-gradient(90deg, #000 92%, transparent);
+}
+.genre-chips::-webkit-scrollbar { display: none; }
+.gchip {
+  flex: none; padding: 8px 16px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  background: var(--surface); border: 1px solid var(--line); font-size: 14px; font-weight: 600;
+  transition: background .2s, border-color .2s, color .2s, transform .15s;
+}
+.gchip:hover { border-color: var(--accent); transform: translateY(-1px); }
+.gchip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.filter-selects { display: flex; flex-wrap: wrap; gap: 10px; }
+.select-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.select-wrap select {
+  padding: 9px 12px; border-radius: 999px; background: var(--surface); color: var(--text);
+  border: 1px solid var(--line); cursor: pointer; max-width: 210px; text-overflow: ellipsis;
+}
+.select-wrap select:focus { border-color: var(--accent); outline: none; }
+.select-wrap.compact select { padding: 6px 10px; font-size: 13px; }
+.where-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin: 24px 0 10px; }
+.where-head .section-title { margin: 0; }
+.load-more { display: flex; justify-content: center; padding: 26px var(--gutter) 0; }
+#browse { padding-top: 22px; }
+#filters, #browse { scroll-margin-top: 120px; }
 
 .notice {
   position: relative; margin: 8px var(--gutter) 0; padding: 14px 18px; border-radius: var(--radius);
@@ -125,7 +154,7 @@ main { padding-bottom: 40px; }
 }
 .row-head h2 { font: 700 21px/1.2 var(--font-display); margin: 0; letter-spacing: -0.01em; }
 .row-head small { color: var(--muted); }
-.link-btn { background: none; border: 0; color: var(--accent); cursor: pointer; font-weight: 600; }
+.link-btn { background: none; border: 0; color: var(--accent); cursor: pointer; font-weight: 600; white-space: nowrap; }
 .track {
   display: grid; grid-auto-flow: column; grid-auto-columns: 158px; gap: 14px;
   overflow-x: auto; padding: 4px var(--gutter) 12px; scroll-snap-type: x proximity;
@@ -292,10 +321,15 @@ main { padding-bottom: 40px; }
 @media (max-width: 720px) {
   .topbar { flex-wrap: wrap; gap: 10px; padding-top: 10px; padding-bottom: 10px; background: #0b0c10e6; }
   .auth-area { order: 2; margin-left: auto; }
-  .search { order: 3; flex: 1 1 calc(100% - 132px); min-width: 0; max-width: none; margin-left: 0; }
-  .region { order: 4; }
-  .region select { width: 122px; text-overflow: ellipsis; }
-  .search input, .region select { padding-top: 9px; padding-bottom: 9px; }
+  .search { order: 3; flex: 1 1 100%; min-width: 0; max-width: none; margin-left: 0; }
+  .search input { padding-top: 9px; padding-bottom: 9px; }
+  .filters { padding-top: 18px; gap: 12px; }
+  .genre-chips { flex-basis: 100%; margin: 0 calc(-1 * var(--gutter)); padding-left: var(--gutter); padding-right: var(--gutter); }
+  .filter-selects { width: 100%; }
+  .select-wrap { flex: 1 1 0; min-width: 0; }
+  .filter-selects .select-wrap > span { display: none; }
+  .select-wrap select { flex: 1; min-width: 0; max-width: none; }
+  .where-head .select-wrap { flex: none; }
   .hero { min-height: 62vh; margin-top: -104px; padding-top: 120px; padding-bottom: 36px; }
   .hero-inner p { -webkit-line-clamp: 3; }
   .row { margin-top: 26px; }

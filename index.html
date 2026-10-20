@@ -19,10 +19,6 @@
     <form class="search" id="searchForm" role="search">
       <input id="searchInput" type="search" placeholder="Search movies…" autocomplete="off" aria-label="Search movies">
     </form>
-    <label class="region">
-      <span class="sr-only">Region</span>
-      <select id="regionSelect" aria-label="Streaming region"></select>
-    </label>
     <div id="authArea" class="auth-area"></div>
   </header>
 
@@ -34,6 +30,30 @@
       <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a>.
       Free classics below already work.
     </div>
+    <section id="filters" class="filters" hidden aria-label="Browse filters">
+      <div class="genre-chips" id="genreChips" role="group" aria-label="Genre"></div>
+      <div class="filter-selects">
+        <label class="select-wrap">
+          <span>Country</span>
+          <select id="countrySelect" aria-label="Country of origin">
+            <option value="">All countries</option>
+          </select>
+        </label>
+        <label class="select-wrap">
+          <span>Sort</span>
+          <select id="sortSelect" aria-label="Sort by">
+            <option value="popular">Most popular</option>
+            <option value="top">Top rated</option>
+            <option value="new">Newest</option>
+          </select>
+        </label>
+      </div>
+    </section>
+    <section id="browse" class="search-results" hidden>
+      <div class="row-head"><h2 id="browseTitle">Browse</h2><button class="link-btn" id="resetFilters">Reset filters</button></div>
+      <div class="grid" id="browseGrid"></div>
+      <div class="load-more"><button class="btn btn-ghost" id="loadMore" hidden>Load more</button></div>
+    </section>
     <section id="searchResults" class="search-results" hidden>
       <div class="row-head"><h2 id="searchTitle">Results</h2><button class="link-btn" id="clearSearch">Clear</button></div>
       <div class="grid" id="searchGrid"></div>
