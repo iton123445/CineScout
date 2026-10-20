@@ -134,14 +134,14 @@
 
   // ---------- Rendering ----------
 
-  function posterCard(item) {
+  function posterCard(item, i = 0) {
     const free = item.freeIa || state.freeByTmdbId.has(item.id);
     const img = item.poster_path ? `${IMG}w342${item.poster_path}` : item.thumb;
     const href = item.id ? `#movie/${item.id}` : `#free/${encodeURIComponent(item.freeIa)}`;
     const year = yearOf(item.release_date) || item.year || "";
     const rating = item.vote_average ? `<span class="rating">★ ${item.vote_average.toFixed(1)}</span>` : "";
     return `
-      <a class="card" href="${href}" aria-label="${esc(item.title)} ${year}">
+      <a class="card" href="${href}" style="--i:${Math.min(i, 12)}" aria-label="${esc(item.title)} ${year}">
         <div class="poster">
           ${img ? `<img loading="lazy" src="${esc(img)}" alt="" onerror="this.remove()">` : ""}
           <div class="ph" ${img ? 'style="z-index:-1"' : ""}>${esc(item.title)}</div>
@@ -164,6 +164,7 @@
       <div class="row-head"><h2>${esc(title)}</h2>${subtitle ? `<small>${esc(subtitle)}</small>` : ""}</div>
       <div class="track">${skeletonCards()}</div>`;
     $("#rows").appendChild(sec);
+    reveal(sec);
     return {
       fill(items) {
         if (!items.length) return sec.remove();
@@ -173,13 +174,31 @@
     };
   }
 
+  // Rows animate in as they scroll into view. Without IntersectionObserver they just show.
+  const revealObserver = "IntersectionObserver" in window
+    ? new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add("in");
+          revealObserver.unobserve(e.target);
+        }
+      }, { rootMargin: "0px 0px -8% 0px" })
+    : null;
+  if (revealObserver) document.documentElement.classList.add("js-reveal");
+
+  function reveal(el) {
+    if (revealObserver) revealObserver.observe(el);
+    else el.classList.add("in");
+  }
+  window.CineReveal = reveal;
+
   function renderHero(m) {
     const hero = $("#hero");
     const size = window.innerWidth > 1400 ? "original" : "w1280";
     const bg = m.backdrop_path ? `${IMG}${size}${m.backdrop_path}` : m.thumb;
-    hero.style.backgroundImage = bg ? `url("${bg}")` : "";
     const href = m.id ? `#movie/${m.id}` : `#free/${encodeURIComponent(m.freeIa)}`;
     hero.innerHTML = `
+      <div class="hero-bg" aria-hidden="true"></div>
       <div class="hero-video" aria-hidden="true"></div>
       <button class="hero-sound" type="button" hidden aria-label="Unmute trailer" aria-pressed="false">🔇</button>
       <div class="hero-inner">
@@ -192,6 +211,16 @@
         </div>
       </div>`;
     hero.hidden = false;
+    if (bg) {
+      // Fade the backdrop in once it has downloaded, then let it slowly drift.
+      const layer = hero.querySelector(".hero-bg");
+      const img = new Image();
+      img.onload = () => {
+        layer.style.backgroundImage = `url("${bg}")`;
+        layer.classList.add("loaded");
+      };
+      img.src = bg;
+    }
     if (m.id && HAS_KEY) queueHeroTrailer(m.id);
   }
 
@@ -383,6 +412,9 @@
       }
       if ($("#searchInput").value.trim() !== q) return;
       grid.innerHTML = items.length ? items.map(posterCard).join("") : `<p class="muted">No movies found.</p>`;
+      box.classList.remove("in");
+      void box.offsetWidth; // restart the card animation for each new search
+      box.classList.add("in");
     } catch (e) {
       console.error(e);
       grid.innerHTML = `<p class="muted">Search failed. Try again.</p>`;

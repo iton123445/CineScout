@@ -361,6 +361,7 @@
     sec.id = "myList";
     sec.hidden = true;
     rowsEl.prepend(sec);
+    window.CineReveal?.(sec);
     state.homeRow = sec;
     renderHomeRow();
   }
@@ -373,8 +374,8 @@
     if (sec.hidden) return;
     sec.innerHTML = `
       <div class="row-head"><h2>My List</h2><small>${items.length} saved</small></div>
-      <div class="track">${items.map((m) => `
-        <a class="card" href="${esc(m.href)}" aria-label="${esc(m.title)}">
+      <div class="track">${items.map((m, i) => `
+        <a class="card" href="${esc(m.href)}" style="--i:${Math.min(i, 12)}" aria-label="${esc(m.title)}">
           <div class="poster">
             ${m.poster ? `<img loading="lazy" src="${esc(m.poster)}" alt="" onerror="this.remove()">` : ""}
             <div class="ph" ${m.poster ? 'style="z-index:-1"' : ""}>${esc(m.title)}</div>
