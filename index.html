@@ -6,15 +6,83 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>CineScout — find it, watch it</title>
   <meta name="description" content="Browse movies, see where they're streaming, and watch public-domain classics for free.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#0b0c10">
+  <script>
+    // Full logo intro once per visit; a quick version on reloads.
+    try {
+      if (sessionStorage.getItem("cinescout.intro")) document.documentElement.classList.add("intro-quick");
+      sessionStorage.setItem("cinescout.intro", "1");
+    } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Shared logo artwork: the mark, plus clip regions that cut it into pieces for the intro and loaders. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <g id="cs-mark">
+        <rect width="100" height="100" rx="22" fill="#f5b83d"/>
+        <path d="M38 28 L76 50 L38 72 Z" fill="#1a1306"/>
+      </g>
+      <clipPath id="cs-t0"><rect x="0" y="0" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t1"><rect x="25" y="0" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t2"><rect x="50" y="0" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t3"><rect x="75" y="0" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t4"><rect x="0" y="25" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t5"><rect x="25" y="25" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t6"><rect x="50" y="25" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t7"><rect x="75" y="25" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t8"><rect x="0" y="50" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t9"><rect x="25" y="50" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t10"><rect x="50" y="50" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t11"><rect x="75" y="50" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t12"><rect x="0" y="75" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t13"><rect x="25" y="75" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t14"><rect x="50" y="75" width="25" height="25"/></clipPath>
+      <clipPath id="cs-t15"><rect x="75" y="75" width="25" height="25"/></clipPath>
+      <clipPath id="cs-q0"><rect x="0" y="0" width="50" height="50"/></clipPath>
+      <clipPath id="cs-q1"><rect x="50" y="0" width="50" height="50"/></clipPath>
+      <clipPath id="cs-q2"><rect x="0" y="50" width="50" height="50"/></clipPath>
+      <clipPath id="cs-q3"><rect x="50" y="50" width="50" height="50"/></clipPath>
+    </defs>
+  </svg>
+
+  <!-- Logo intro: 16 scattered pieces fly together, then the letters assemble. -->
+  <div id="intro" class="intro" aria-hidden="true">
+    <div class="intro-logo">
+      <svg class="intro-mark" viewBox="0 0 100 100" overflow="visible">
+        <g class="piece" clip-path="url(#cs-t0)" style="--x:-161px;--y:-71px;--r:181deg;--d:0.12s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t1)" style="--x:143px;--y:118px;--r:229deg;--d:0.08s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t2)" style="--x:-138px;--y:55px;--r:170deg;--d:0.32s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t3)" style="--x:74px;--y:142px;--r:199deg;--d:0.20s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t4)" style="--x:160px;--y:-84px;--r:146deg;--d:0.05s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t5)" style="--x:-107px;--y:-144px;--r:214deg;--d:0.31s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t6)" style="--x:-90px;--y:101px;--r:-123deg;--d:0.32s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t7)" style="--x:-100px;--y:-116px;--r:178deg;--d:0.06s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t8)" style="--x:-91px;--y:-92px;--r:-180deg;--d:0.21s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t9)" style="--x:-160px;--y:-136px;--r:198deg;--d:0.18s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t10)" style="--x:136px;--y:90px;--r:133deg;--d:0.21s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t11)" style="--x:-96px;--y:-129px;--r:109deg;--d:0.29s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t12)" style="--x:-105px;--y:-58px;--r:127deg;--d:0.22s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t13)" style="--x:-110px;--y:64px;--r:240deg;--d:0.31s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t14)" style="--x:160px;--y:78px;--r:-132deg;--d:0.03s"><use href="#cs-mark"/></g>
+        <g class="piece" clip-path="url(#cs-t15)" style="--x:-128px;--y:-124px;--r:-207deg;--d:0.08s"><use href="#cs-mark"/></g>
+        <use class="whole" href="#cs-mark"/>
+      </svg>
+      <div class="intro-word"><span style="--x:68px;--y:-102px;--r:-74deg;--d:0.45s">C</span><span style="--x:116px;--y:32px;--r:47deg;--d:0.84s">i</span><span style="--x:122px;--y:-48px;--r:-81deg;--d:0.47s">n</span><span style="--x:124px;--y:70px;--r:-40deg;--d:0.82s">e</span><span style="--x:-123px;--y:33px;--r:108deg;--d:0.85s">S</span><span style="--x:132px;--y:-50px;--r:109deg;--d:0.61s">c</span><span style="--x:-89px;--y:75px;--r:-86deg;--d:0.74s">o</span><span style="--x:-127px;--y:-46px;--r:-119deg;--d:0.85s">u</span><span style="--x:145px;--y:46px;--r:42deg;--d:0.65s">t</span></div>
+    </div>
+  </div>
+
   <header class="topbar">
     <a class="brand" href="#" id="homeLink" aria-label="CineScout home">
-      <span class="brand-mark" aria-hidden="true">▶</span>CineScout
+      <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true"><use href="#cs-mark"/></svg>CineScout
     </a>
     <form class="search" id="searchForm" role="search">
       <input id="searchInput" type="search" placeholder="Search movies…" autocomplete="off" aria-label="Search movies">

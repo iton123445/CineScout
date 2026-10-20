@@ -293,7 +293,7 @@
           <button class="btn btn-primary btn-sm">Post comment</button>
         </div>
       </form>
-      <ul class="comments"><li class="muted">Loading comments…</li></ul>`;
+      <ul class="comments"><li>${window.CineLoader ? window.CineLoader("Loading comments…", true) : "Loading comments…"}</li></ul>`;
     loadComments(commentsEl, meta);
   }
 

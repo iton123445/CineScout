@@ -66,6 +66,35 @@
   const yearOf = (date) => (date ? Number(String(date).slice(0, 4)) : null);
   const normTitle = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 
+  // Loading indicator: the logo breaking into four pieces and re-forming.
+  const loaderHtml = (label = "Loading…", small = false) => `
+    <div class="loader${small ? " small" : ""}" role="status">
+      <svg viewBox="0 0 100 100" aria-hidden="true">${[0, 1, 2, 3]
+        .map((i) => `<g class="piece" clip-path="url(#cs-q${i})"><use href="#cs-mark"/></g>`).join("")}</svg>
+      <span>${esc(label)}</span>
+    </div>`;
+  window.CineLoader = loaderHtml;
+
+  // Start at the top behind the intro instead of restoring an old scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
+  // The logo intro plays through once, then leaves as soon as the hero image is ready.
+  let introClosed = false;
+  function finishIntro(now = false) {
+    if (introClosed) return;
+    introClosed = true;
+    const el = document.getElementById("intro");
+    if (!el) return;
+    const min = document.documentElement.classList.contains("intro-quick") ? 900 : 2300;
+    const wait = now ? 0 : Math.max(0, min - performance.now());
+    setTimeout(() => {
+      el.classList.add("done");
+      setTimeout(() => el.remove(), 800);
+    }, wait);
+  }
+  setTimeout(() => finishIntro(), 5000);
+  document.getElementById("intro")?.addEventListener("click", () => finishIntro(true));
+
   const state = {
     region: pickRegion(),
     freeByTmdbId: new Map(), // tmdb id -> classic
@@ -221,9 +250,12 @@
       img.onload = () => {
         layer.style.backgroundImage = `url("${bg}")`;
         layer.classList.add("loaded");
+        finishIntro();
       };
+      img.onerror = () => finishIntro();
       img.src = bg;
     }
+    if (!bg) finishIntro();
     if (m.id && HAS_KEY) queueHeroTrailer(m.id);
   }
 
@@ -378,6 +410,7 @@
   }
 
   function showKeyError() {
+    finishIntro();
     const n = $("#keyNotice");
     n.hidden = false;
     n.innerHTML = `<strong>TMDB didn't accept the key.</strong> Check the value in <code>config.js</code>.`;
@@ -482,7 +515,7 @@
   }
 
   async function showMovie(id, autoplay) {
-    openDialog(`<div class="d-backdrop"></div><div class="d-main"><div class="d-poster"></div><div class="d-info"><h2>Loading…</h2></div></div>`);
+    openDialog(loaderHtml("Loading movie…"));
     let m;
     try {
       m = await tmdb(`/movie/${id}`, { append_to_response: "videos,credits,watch/providers" });
@@ -552,7 +585,7 @@
 
   async function showFree(ia, autoplay) {
     const c = FREE_CLASSICS.find((x) => x.ia === ia);
-    openDialog(`<div class="d-main" style="margin-top:0;padding-top:32px"><div class="d-info"><h2>Loading…</h2></div></div>`);
+    openDialog(loaderHtml("Loading film…"));
     const meta = await getJSON(`${IA}/metadata/${encodeURIComponent(ia)}`).catch(() => null);
     const md = meta?.metadata || {};
     const title = c?.title || stripHtml(md.title) || ia;

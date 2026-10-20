@@ -44,9 +44,73 @@ button, input, select { font: inherit; color: inherit; }
   font: 800 22px/1 var(--font-display); letter-spacing: -0.02em;
   text-decoration: none; white-space: nowrap;
 }
-.brand-mark {
-  display: grid; place-items: center; width: 28px; height: 28px;
-  border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-size: 12px;
+.brand-mark { width: 28px; height: 28px; flex: none; transition: transform .3s var(--ease-out, ease); }
+.brand:hover .brand-mark { transform: rotate(-8deg) scale(1.08); }
+
+/* ---------- Logo intro ---------- */
+.intro {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 45%, #1a1508 0%, var(--bg) 60%);
+  animation: intro-failsafe 0s 7s forwards; /* never block the page if scripts fail */
+}
+.intro.done { opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility 0s .6s; }
+.intro-logo { display: flex; align-items: center; gap: 18px; transition: transform .7s cubic-bezier(.6, 0, .4, 1), filter .7s; }
+.intro.done .intro-logo { transform: scale(1.8); filter: blur(6px); }
+.intro-mark { width: clamp(64px, 14vw, 104px); height: auto; overflow: visible; filter: drop-shadow(0 0 0 #f5b83d00); animation: mark-glow 1.2s ease-out 1.05s both; }
+.intro .piece {
+  transform-box: fill-box; transform-origin: center;
+  animation: assemble .95s cubic-bezier(.2, .85, .25, 1) var(--d) both;
+}
+.intro .whole { opacity: 0; animation: fade-in .25s ease 1.3s forwards; }
+.intro-quick .intro .whole { animation-delay: .7s; }
+.intro-word {
+  position: relative; display: flex;
+  font: 800 clamp(34px, 8vw, 64px)/1 var(--font-display); letter-spacing: -0.03em; color: var(--text);
+}
+.intro-word span { display: inline-block; animation: letter-in .8s cubic-bezier(.2, .85, .25, 1) var(--d) both; }
+.intro-word::after {
+  content: ""; position: absolute; inset: -10% -20%;
+  background: linear-gradient(105deg, transparent 40%, #ffffff55 50%, transparent 60%);
+  transform: translateX(-120%); animation: sweep .9s ease-in-out 1.55s both;
+  mix-blend-mode: overlay; pointer-events: none;
+}
+@keyframes assemble {
+  0% { transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(.4); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes letter-in {
+  0% { transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(.5); opacity: 0; filter: blur(8px); }
+  100% { transform: none; opacity: 1; filter: none; }
+}
+@keyframes mark-glow {
+  0% { filter: drop-shadow(0 0 0 #f5b83d00); }
+  40% { filter: drop-shadow(0 0 28px #f5b83daa); }
+  100% { filter: drop-shadow(0 0 10px #f5b83d44); }
+}
+@keyframes sweep { to { transform: translateX(120%); } }
+@keyframes intro-failsafe { to { opacity: 0; visibility: hidden; } }
+
+/* Reloads in the same visit: same assembly, twice as fast */
+.intro-quick .intro .piece { animation-duration: .5s; animation-delay: calc(var(--d) / 2); }
+.intro-quick .intro-word span { animation-duration: .45s; animation-delay: calc(var(--d) / 2.2); }
+.intro-quick .intro-mark { animation-delay: .55s; }
+.intro-quick .intro-word::after { animation-delay: .8s; }
+
+/* ---------- Loader: the logo breaking apart and re-forming ---------- */
+.loader { display: grid; place-items: center; gap: 12px; padding: 40px 16px; color: var(--muted); font-size: 14px; }
+.loader svg { width: 46px; height: 46px; overflow: visible; }
+.loader .piece { transform-box: fill-box; transform-origin: center; animation: regroup 1.6s cubic-bezier(.5, 0, .3, 1) infinite; }
+.loader .piece:nth-child(1) { --x: -26px; --y: -26px; --r: -90deg; }
+.loader .piece:nth-child(2) { --x: 26px; --y: -26px; --r: 90deg; animation-delay: .08s; }
+.loader .piece:nth-child(3) { --x: -26px; --y: 26px; --r: 90deg; animation-delay: .16s; }
+.loader .piece:nth-child(4) { --x: 26px; --y: 26px; --r: -90deg; animation-delay: .24s; }
+.loader.small { padding: 16px; grid-auto-flow: column; justify-content: start; }
+.loader.small svg { width: 26px; height: 26px; }
+@keyframes regroup {
+  0%, 12% { transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(.5); opacity: 0; }
+  40%, 72% { transform: none; opacity: 1; }
+  100% { transform: translate(calc(var(--x) * -1), calc(var(--y) * -1)) rotate(calc(var(--r) * -1)) scale(.5); opacity: 0; }
 }
 .search { flex: 1; max-width: 520px; margin-left: auto; }
 .search input {
@@ -425,4 +489,5 @@ main { padding-bottom: 40px; }
   .js-reveal .row:not(.in) .row-head,
   .js-reveal .row:not(.in) .card:not(.skeleton) { opacity: 1; }
   .hero-bg { opacity: 1; }
+  .intro { display: none; }
 }
