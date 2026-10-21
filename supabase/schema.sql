@@ -126,3 +126,53 @@ grant select, insert, delete on public.favorites to authenticated;
 grant insert, update, delete on public.ratings to authenticated;
 grant insert on public.comments to anon, authenticated;
 grant delete on public.comments to authenticated;
+
+-- ---------- Account settings ----------
+
+-- When a member renames themselves, their older comments show the new name too.
+create or replace function public.sync_comment_names() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.display_name is distinct from old.display_name then
+    update public.comments set author_name = new.display_name where user_id = new.id;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists profiles_sync_names on public.profiles;
+create trigger profiles_sync_names after update of display_name on public.profiles
+  for each row execute function public.sync_comment_names();
+
+-- Lets a signed-in member permanently delete their own account and everything tied to it.
+-- Favorites, ratings and the profile are removed by "on delete cascade"; comments are removed here.
+create or replace function public.delete_my_account() returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'Not signed in';
+  end if;
+  delete from public.comments where user_id = uid;
+  delete from auth.users where id = uid;
+end $$;
+
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;
+
+-- ---------- Comment reports ----------
+-- Anyone can report a comment; only the project owner can read reports (in the Supabase dashboard).
+create table if not exists public.comment_reports (
+  id bigint generated always as identity primary key,
+  comment_id bigint not null references public.comments on delete cascade,
+  reporter uuid default auth.uid() references auth.users on delete set null,
+  reason text not null check (char_length(reason) between 1 and 300),
+  created_at timestamptz not null default now()
+);
+alter table public.comment_reports enable row level security;
+
+drop policy if exists "anyone can report" on public.comment_reports;
+create policy "anyone can report" on public.comment_reports for insert to anon, authenticated
+  with check (reporter is null or reporter = auth.uid());
+
+grant insert on public.comment_reports to anon, authenticated;

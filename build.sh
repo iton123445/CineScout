@@ -21,5 +21,5 @@ echo "config.js written"
 # Version the asset URLs so each deploy skips stale CDN and browser caches.
 v="${RENDER_GIT_COMMIT:-$(date +%s)}"
 v="${v:0:8}"
-sed -i -E "s/(config\.js|picker\.js|social\.js|app\.js|styles\.css)\"/\1?v=${v}\"/g" index.html
+sed -i -E "s/(config\.js|picker\.js|social\.js|app\.js|styles\.css)\"/\1?v=${v}\"/g" index.html privacy.html terms.html faq.html
 echo "assets versioned: ${v}"

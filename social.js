@@ -76,6 +76,7 @@
         <div class="menu" role="menu" hidden>
           <div class="menu-head">Signed in as<br><b>${esc(state.name)}</b></div>
           <button role="menuitem" data-menu="list">My List (${state.favorites.size})</button>
+          <button role="menuitem" data-menu="settings">Account settings</button>
           <button role="menuitem" data-menu="signout">Sign out</button>
         </div>
       </div>`;
@@ -103,6 +104,8 @@
           <label>Display name<input name="name" autocomplete="nickname" required maxlength="40"></label>
           <label>Email<input name="email" type="email" autocomplete="email" required></label>
           <label>Password<input name="password" type="password" autocomplete="new-password" required minlength="6"></label>
+          <label class="check"><input type="checkbox" name="agree" required>
+            <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
           <p class="form-msg" role="alert"></p>
           <button class="btn btn-primary btn-block">Create account</button>
         </form>
@@ -116,6 +119,32 @@
           <button class="btn btn-primary btn-block">Send reset link</button>
         </form>
         <p class="auth-links"><button class="link-btn" data-auth="signin">Back to sign in</button></p>`,
+      settings: `
+        <h2>Account settings</h2>
+        <p class="muted small">Signed in as ${esc(state.user?.email || "")}</p>
+        <form data-form="profile" class="settings-block">
+          <h3>Display name</h3>
+          <label><span class="sr-only">Display name</span><input name="name" autocomplete="nickname" required maxlength="40" value="${esc(state.name)}"></label>
+          <p class="muted small">Shown on your comments, including older ones.</p>
+          <p class="form-msg" role="alert"></p>
+          <button class="btn btn-primary btn-sm">Save name</button>
+        </form>
+        <form data-form="password" class="settings-block">
+          <h3>Change password</h3>
+          <label>Current password<input name="current" type="password" autocomplete="current-password" required></label>
+          <label>New password<input name="password" type="password" autocomplete="new-password" required minlength="6"></label>
+          <label>Confirm new password<input name="confirm" type="password" autocomplete="new-password" required minlength="6"></label>
+          <p class="form-msg" role="alert"></p>
+          <button class="btn btn-primary btn-sm">Update password</button>
+        </form>
+        <form data-form="delete" class="settings-block danger-zone">
+          <h3>Delete account</h3>
+          <p class="muted small">This permanently deletes your account, My List, ratings and comments. It can't be undone.</p>
+          <label>Type DELETE to confirm<input name="confirmText" autocomplete="off" required pattern="DELETE"></label>
+          <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+          <p class="form-msg" role="alert"></p>
+          <button class="btn btn-danger btn-sm">Delete my account</button>
+        </form>`,
       reset: `
         <h2>Choose a new password</h2>
         <form data-form="reset">
@@ -127,14 +156,14 @@
     $("#authBody").innerHTML = views[mode];
     const dlg = authDialog();
     if (!dlg.open) dlg.showModal();
-    $("#authBody input")?.focus();
+    if (mode !== "settings") $("#authBody input")?.focus();
   }
 
   async function submitAuth(form) {
     const kind = form.dataset.form;
     const f = Object.fromEntries(new FormData(form));
     const msg = $(".form-msg", form);
-    const btn = $("button", form);
+    const btn = $("button.btn", form);
     msg.textContent = "";
     msg.className = "form-msg";
     btn.disabled = true;
@@ -160,6 +189,33 @@
         if (error) throw error;
         msg.className = "form-msg ok";
         msg.textContent = "If that email has an account, a reset link is on its way.";
+      } else if (kind === "profile") {
+        const name = f.name.trim();
+        if (!name) throw new Error("Please enter a display name.");
+        const { error } = await db.from("profiles").update({ display_name: name }).eq("id", state.user.id);
+        if (error) throw error;
+        await db.auth.updateUser({ data: { display_name: name } });
+        state.name = name;
+        renderAuthArea();
+        if (state.current) refreshCurrent();
+        msg.className = "form-msg ok";
+        msg.textContent = "Display name saved.";
+      } else if (kind === "password") {
+        if (f.password !== f.confirm) throw new Error("The new passwords don't match.");
+        await reauthenticate(f.current);
+        const { error } = await db.auth.updateUser({ password: f.password });
+        if (error) throw error;
+        form.reset();
+        msg.className = "form-msg ok";
+        msg.textContent = "Password updated.";
+      } else if (kind === "delete") {
+        if (f.confirmText !== "DELETE") throw new Error("Type DELETE in capital letters to confirm.");
+        await reauthenticate(f.password);
+        const { error } = await db.rpc("delete_my_account");
+        if (error) throw error;
+        await db.auth.signOut({ scope: "local" });
+        authDialog().close();
+        alert("Your account and its data have been deleted.");
       } else if (kind === "reset") {
         const { error } = await db.auth.updateUser({ password: f.password });
         if (error) throw error;
@@ -172,11 +228,18 @@
     }
   }
 
+  // Sensitive changes ask for the current password first.
+  async function reauthenticate(password) {
+    const { error } = await db.auth.signInWithPassword({ email: state.user.email, password });
+    if (error) throw new Error("Your current password is incorrect.");
+  }
+
   function friendlyError(err) {
     const m = err?.message || String(err);
     if (/invalid login credentials/i.test(m)) return "Wrong email or password.";
     if (/email not confirmed/i.test(m)) return "Please confirm your email first. Check your inbox.";
     if (/already registered/i.test(m)) return "That email already has an account. Try signing in.";
+    if (/should be different/i.test(m)) return "Your new password must be different from the current one.";
     return m;
   }
 
@@ -313,7 +376,9 @@
               <b>${esc(c.author_name)}</b>
               ${c.is_guest ? '<span class="tag">Guest</span>' : ""}
               <span class="muted small">${esc(timeAgo(c.created_at))}</span>
-              ${state.user && c.user_id === state.user.id ? `<button class="link-btn small" data-del-comment="${c.id}">Delete</button>` : ""}
+              ${state.user && c.user_id === state.user.id
+                ? `<button class="link-btn small" data-del-comment="${c.id}">Delete</button>`
+                : `<button class="link-btn small muted-link" data-report-comment="${c.id}">Report</button>`}
             </div>
             <p>${esc(c.body)}</p>
           </li>`).join("")
@@ -345,6 +410,15 @@
     if (error) { msg.textContent = error.message || "Couldn't post your comment."; return; }
     form.body.value = "";
     loadComments(commentsEl, meta);
+  }
+
+  async function reportComment(id, btn) {
+    const reason = prompt("Why are you reporting this comment? (spam, abuse, copyright, other)");
+    if (reason === null) return;
+    const { error } = await db.from("comment_reports").insert({ comment_id: id, reason: reason.trim().slice(0, 300) || "No reason given" });
+    if (error) { alert("Couldn't send the report. Please try again."); return; }
+    btn.textContent = "Reported";
+    btn.disabled = true;
   }
 
   async function deleteComment(id) {
@@ -396,6 +470,8 @@
     if (star) { rate(Number(star.dataset.star)); return; }
     const del = t.closest("[data-del-comment]");
     if (del) { deleteComment(Number(del.dataset.delComment)); return; }
+    const report = t.closest("[data-report-comment]");
+    if (report) { reportComment(Number(report.dataset.reportComment), report); return; }
 
     const avatar = t.closest(".avatar");
     const menu = $(".user-menu .menu");
@@ -406,6 +482,7 @@
     }
     const item = t.closest("[data-menu]");
     if (item?.dataset.menu === "signout") db.auth.signOut();
+    if (item?.dataset.menu === "settings") openAuth("settings");
     if (item?.dataset.menu === "list") {
       const row = $("#myList");
       if (row && !row.hidden) row.scrollIntoView({ behavior: "smooth", block: "center" });
