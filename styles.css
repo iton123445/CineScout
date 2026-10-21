@@ -191,6 +191,26 @@ button, input, select { font: inherit; color: inherit; }
 .is-selected .picker-check { opacity: 1; }
 .picker-empty { padding: 18px 10px; text-align: center; color: var(--muted); font-size: 14px; }
 
+/* Free-to-watch toggle and badges */
+.free-toggle {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text); font-size: 14px; font-weight: 700;
+  transition: background .2s, border-color .2s, color .2s, transform .15s;
+}
+.free-toggle svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linejoin: round; }
+.free-toggle:hover { border-color: var(--free); transform: translateY(-1px); }
+.free-toggle[aria-pressed="true"] { background: var(--free); border-color: var(--free); color: #062314; box-shadow: 0 4px 14px #4fd18b44; }
+.badge-ads { background: #062314cc; color: var(--free); border: 1px solid #4fd18b99; backdrop-filter: blur(4px); }
+.row-side { display: flex; align-items: baseline; gap: 14px; }
+.free-ads-box {
+  margin: 4px 0 16px; padding: 14px 16px; border-radius: var(--radius);
+  background: linear-gradient(135deg, #0f2a1c, #10241c); border: 1px solid #1f5a3b;
+}
+.free-ads-box > p { margin: 0 0 10px; color: #c8f0d9; }
+.free-ads-box .muted { margin: 10px 0 0; }
+.free-ads-box .provider { background: #0b1f15; border-color: #1f5a3b; }
+.free-ads-box .provider:hover { border-color: var(--free); }
+
 /* Sort: segmented toggle with a sliding highlight */
 .segmented {
   position: relative; display: inline-flex; padding: 4px; border-radius: 999px;
@@ -518,7 +538,9 @@ main { padding-bottom: 40px; }
   .search input { padding-top: 9px; padding-bottom: 9px; }
   .filters { padding-top: 18px; gap: 12px; }
   .genre-chips { flex-basis: 100%; margin: 0 calc(-1 * var(--gutter)); padding-left: var(--gutter); padding-right: var(--gutter); }
-  .filter-selects { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .filter-selects { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .filter-selects .segmented { grid-column: 1 / -1; }
+  .free-toggle { padding: 9px 13px; }
   .filter-selects .picker-btn { width: 100%; max-width: none; }
   .segmented { display: flex; }
   .segmented button { flex: 1; justify-content: center; padding: 8px 6px; }

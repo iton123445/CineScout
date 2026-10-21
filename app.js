@@ -57,6 +57,12 @@
     3: (q) => `https://play.google.com/store/search?q=${q}&c=movies`,
     192: (q) => `https://www.youtube.com/results?search_query=${q}`,
     73: (q) => `https://tubitv.com/search/${q}`,
+    538: (q) => `https://watch.plex.tv/search?q=${q}`,
+    2077: (q) => `https://watch.plex.tv/search?q=${q}`,
+    207: (q) => `https://therokuchannel.roku.com/search/${q}`,
+    191: (q) => `https://www.kanopy.com/en/search?query=${q}`,
+    212: (q) => `https://www.hoopladigital.com/search?q=${q}`,
+    235: (q) => `https://www.youtube.com/results?search_query=${q}`,
   };
 
   const FALLBACK_REGIONS = ["US", "GB", "CA", "AU", "PH", "IN", "DE", "FR", "ES", "BR", "MX", "JP", "KR", "SG", "NZ"];
@@ -174,7 +180,8 @@
         <div class="poster">
           ${img ? `<img loading="lazy" src="${esc(img)}" alt="" onerror="this.remove()">` : ""}
           <div class="ph" ${img ? 'style="z-index:-1"' : ""}>${esc(item.title)}</div>
-          ${free ? '<span class="badge badge-free">Free</span>' : ""}
+          ${free ? '<span class="badge badge-free">Free</span>'
+            : item.freeAds ? '<span class="badge badge-ads">Free · ads</span>' : ""}
           ${rating}
         </div>
         <div class="card-title">${esc(item.title)}</div>
@@ -186,12 +193,14 @@
     return Array.from({ length: n }, () => '<div class="card skeleton"><div class="poster"></div></div>').join("");
   }
 
-  function addRow(title, subtitle, genreId) {
+  function addRow(title, subtitle, genreId, freeAds = false) {
     const sec = document.createElement("section");
     sec.className = "row";
-    const side = genreId
-      ? `<button class="link-btn" data-genre="${genreId}">See all →</button>`
-      : subtitle ? `<small>${esc(subtitle)}</small>` : "";
+    const side = freeAds
+      ? `<span class="row-side">${subtitle ? `<small>${esc(subtitle)}</small>` : ""}<button class="link-btn" data-free-all>See all →</button></span>`
+      : genreId
+        ? `<button class="link-btn" data-genre="${genreId}">See all →</button>`
+        : subtitle ? `<small>${esc(subtitle)}</small>` : "";
     sec.innerHTML = `
       <div class="row-head"><h2>${esc(title)}</h2>${side}</div>
       <div class="track">${skeletonCards()}</div>`;
@@ -200,6 +209,7 @@
     return {
       fill(items) {
         if (!items.length) return sec.remove();
+        if (freeAds) items = items.map((m) => ({ ...m, freeAds: true }));
         sec.querySelector(".track").innerHTML = items.map(posterCard).join("");
       },
       fail() { sec.querySelector(".track").innerHTML = `<p class="muted">Couldn't load this row.</p>`; },
@@ -375,6 +385,7 @@
 
     const rows = [
       ["Trending this week", null, "/trending/movie/week", {}],
+      [`Free to watch in ${regionName(state.region)}`, "On official apps, with ads", "/discover/movie", freeParams()],
       ["Free classics", "Public domain · stream right here", "free", {}],
       ["Popular", null, "/movie/popular", { region: state.region }],
       ["Now in theaters", null, "/movie/now_playing", { region: state.region }],
@@ -387,7 +398,8 @@
       ["Top rated of all time", null, "/movie/top_rated", {}],
       ["Coming soon", null, "/movie/upcoming", { region: state.region }],
     ];
-    const slots = rows.map(([title, sub, , params]) => addRow(title, sub, params.with_genres));
+    const slots = rows.map(([title, sub, , params]) =>
+      addRow(title, sub, params.with_genres, Boolean(params.with_watch_monetization_types)));
 
     // Free classics first so FREE badges show on other rows too.
     const free = await loadFreeClassics();
@@ -457,6 +469,28 @@
   }
 
   // ---------- Detail ----------
+
+  const LIBRARY_SERVICES = new Set([191, 212]); // Kanopy, Hoopla
+
+  // Prominent "watch free" box when the movie is on a free service in the viewer's country.
+  function freeWatchHtml(m) {
+    const r = m["watch/providers"]?.results?.[state.region];
+    const seen = new Set();
+    const list = [...(r?.free || []), ...(r?.ads || [])].filter((p) => !seen.has(p.provider_id) && seen.add(p.provider_id));
+    if (!list.length) return "";
+    const library = list.some((p) => LIBRARY_SERVICES.has(p.provider_id));
+    return `
+      <div class="free-ads-box">
+        <p><strong>Free to watch in ${esc(regionName(state.region))}</strong> on official apps${r.ads?.length ? ", with ads" : ""}.</p>
+        <div class="providers">
+          ${list.map((p) => `
+            <a class="provider" href="${esc(providerLink(p, m.title, r.link))}" target="_blank" rel="noopener">
+              <img src="${IMG}w92${p.logo_path}" alt="">Watch free on ${esc(p.provider_name)}
+            </a>`).join("")}
+        </div>
+        ${library ? `<p class="muted small">Kanopy and Hoopla are free with a public library card.</p>` : ""}
+      </div>`;
+  }
 
   function providerLink(p, title, fallback) {
     const make = PROVIDER_SEARCH[p.provider_id];
@@ -544,6 +578,7 @@
           <div class="chips">${(m.genres || []).map((g) => `<span class="chip">${esc(g.name)}</span>`).join("")}</div>
           <p class="d-overview">${esc(m.overview || "No overview available.")}</p>
           <div id="socialActions"></div>
+          <div id="freeWatch">${freeWatchHtml(m)}</div>
 
           <div id="freeSlot"></div>
 
@@ -581,6 +616,7 @@
         state.region = code;
         try { localStorage.setItem("cinescout.region", code); } catch {}
         $("#whereList").innerHTML = whereHtml(m);
+        $("#freeWatch").innerHTML = freeWatchHtml(m);
       },
     });
 
@@ -663,7 +699,8 @@
   };
   // Most-wanted genres first; any others TMDB adds go at the end.
   const GENRE_ORDER = [28, 35, 10749, 18, 27, 53, 16, 878, 12, 14, 80, 9648, 10751, 99, 36, 10752, 10402, 37, 10770];
-  const filter = { genre: "", country: "", sort: "popular", page: 1 };
+  const DEFAULT_FILTER = { genre: "", country: "", sort: "popular", free: false, page: 1 };
+  const filter = { ...DEFAULT_FILTER };
   const genreNames = new Map();
   let filtersReady = false;
   let browseToken = 0;
@@ -673,7 +710,17 @@
     return { with_genres: id, sort_by: "popularity.desc", "vote_count.gte": 100, include_adult: "false" };
   }
 
-  const isFiltering = () => Boolean(filter.genre || filter.country || filter.sort !== "popular");
+  const isFiltering = () => Boolean(filter.genre || filter.country || filter.free || filter.sort !== "popular");
+
+  // Movies free to stream (often with ads) on official services in the viewer's country.
+  function freeParams() {
+    return {
+      watch_region: state.region,
+      with_watch_monetization_types: "free|ads",
+      sort_by: "popularity.desc",
+      include_adult: "false",
+    };
+  }
 
   async function initFilters() {
     if (!HAS_KEY) return;
@@ -712,6 +759,7 @@
   }
 
   function syncFilterUI() {
+    $("#freeToggle")?.setAttribute("aria-pressed", String(filter.free));
     document.querySelectorAll(".gchip").forEach((b) => {
       b.setAttribute("aria-pressed", String(b.dataset.genre === String(filter.genre)));
     });
@@ -733,9 +781,12 @@
   window.addEventListener("resize", moveSortThumb);
 
   function browseTitle() {
-    const genre = filter.genre ? genreNames.get(Number(filter.genre)) || "Movies" : "All movies";
-    const from = filter.country ? ` from ${regionName(filter.country)}` : "";
-    return `${genre}${from} · ${SORT_LABELS[filter.sort]}`;
+    const genre = filter.genre ? genreNames.get(Number(filter.genre)) || "Movies" : "";
+    const base = filter.free
+      ? `Free ${(genre || "movies").toLowerCase()} to watch in ${regionName(state.region)}`
+      : genre || "All movies";
+    const from = filter.country ? `${filter.free ? "," : ""} from ${regionName(filter.country)}` : "";
+    return `${base}${from} · ${SORT_LABELS[filter.sort]}`;
   }
 
   async function applyFilters({ more = false } = {}) {
@@ -757,21 +808,23 @@
     const sort = SORTS[filter.sort];
     const params = {
       sort_by: sort.sort_by,
-      "vote_count.gte": filter.country ? sort.minCountry : sort.min,
+      "vote_count.gte": filter.country || filter.free ? sort.minCountry : sort.min,
       include_adult: "false",
       page: filter.page,
     };
     if (filter.genre) params.with_genres = filter.genre;
     if (filter.country) params.with_origin_country = filter.country;
+    if (filter.free) Object.assign(params, { watch_region: state.region, with_watch_monetization_types: "free|ads" });
     if (filter.sort === "new") params["primary_release_date.lte"] = new Date().toISOString().slice(0, 10);
 
     try {
       const r = await tmdb("/discover/movie", params);
       if (token !== browseToken) return;
-      const html = r.results.map(posterCard).join("");
+      const items = filter.free ? r.results.map((m) => ({ ...m, freeAds: true })) : r.results;
+      const html = items.map(posterCard).join("");
       if (more) grid.insertAdjacentHTML("beforeend", html);
       else {
-        grid.innerHTML = html || `<p class="muted">No movies match these filters. Try another genre or country.</p>`;
+        grid.innerHTML = html || `<p class="muted">No movies match these filters. Try another genre or country${filter.free ? ", or turn off “Free to watch”" : ""}.</p>`;
         const box = $("#browse");
         box.classList.remove("in");
         void box.offsetWidth;
@@ -787,7 +840,7 @@
   }
 
   function resetFilters() {
-    Object.assign(filter, { genre: "", country: "", sort: "popular", page: 1 });
+    Object.assign(filter, DEFAULT_FILTER);
     applyFilters();
   }
 
@@ -811,6 +864,16 @@
     applyFilters();
     if (fromRow) $("#filters").scrollIntoView({ behavior: "smooth", block: "start" });
     else g.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  });
+  $("#freeToggle").addEventListener("click", () => {
+    filter.free = !filter.free;
+    applyFilters();
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-free-all]")) return;
+    filter.free = true;
+    applyFilters();
+    $("#filters").scrollIntoView({ behavior: "smooth", block: "start" });
   });
   $("#sortSeg").addEventListener("click", (e) => {
     const b = e.target.closest("[data-sort]");
@@ -876,7 +939,7 @@
   $("#homeLink").addEventListener("click", (e) => {
     e.preventDefault();
     $("#searchInput").value = "";
-    Object.assign(filter, { genre: "", country: "", sort: "popular", page: 1 });
+    Object.assign(filter, DEFAULT_FILTER);
     syncFilterUI();
     runSearch("");
     closeDetail();
